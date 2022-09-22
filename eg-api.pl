@@ -214,7 +214,6 @@ add_path('/self/me',
     my $user_obj = $c->stash('eg_user_obj');
 
     my $e = new_editor(authtoken => $ses);
-    $e->personality('open-ils.pcrud');
     my $usr = $e->retrieve_actor_user([
         $user_obj->id,
         {flesh => 1, flesh_fields => {au => [qw/card cards addresses/]}}

@@ -920,7 +920,7 @@ add_path('/bibs/:id/holdings',
     my $e = new_editor(authtoken => $ses);
     my $acn = $e->search_asset_call_number([
         {record => $bib, label => { '<>' => '##URI##'}, deleted => 'f'},
-        {flesh => 2, flesh_fields => {acn => [qw/copies prefix suffix/], acp => [qw/status circ_lib location/]}}
+        {flesh => 2, flesh_fields => {acn => [qw/copies prefix suffix/], acp => [qw/status circ_lib location parts/]}}
     ]) or die "cn tree fetch failed";
 
     for my $cn (@{$acn}) {

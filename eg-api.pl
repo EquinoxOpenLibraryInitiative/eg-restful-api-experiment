@@ -939,6 +939,46 @@ add_path('/bibs/:id/holdings',
   }
 );
 
+add_path('/bibs/:id/display_fields',
+  [qw/get post/] => {
+    security => [
+        map {{
+            $_.'Auth' => ['OPAC_LOGIN', 'REST.api,REST.api.bibs']
+        }} qw/bearer cookie param/
+    ],
+    tags => [ "bibs" ],
+    summary => "Display fields with optional highlighting",
+    operationId => "bibDisplayFields",
+    responses => {
+      200 => {
+        description => "Set of display field objects",
+        content => {
+          'application/json' => {
+            schema => {
+              type => 'array',
+              items => { type => 'object' }
+            }
+          }
+        }
+      }
+    }
+  } => sub {
+    my $c = shift->openapi->valid_input or return;
+    apply_locale($c);
+
+    my $bib = $c->stash('id');
+    my $map = $c->req->text || '""=>"-1"';
+
+    $c->render(openapi => to_bare_mixed_ref(
+        $U->simplereq(
+            'open-ils.search',
+            'open-ils.search.fetch.metabib.display_field.highlight',
+            $map => $bib
+        )
+    ));
+  }
+);
+
 add_path('/items/new',
   get => {
     security => [
@@ -1231,12 +1271,18 @@ sub add_path {
         my $def= shift;
         my $handler = shift;
 
-        $$config{paths}{$path}{$method} = $def;
-        $method = 'del' if ($method eq 'delete'); # for registration via del()
+        $method = [$method] unless ref $method;
 
-        &{\&{$method}}( # get, post, put, patch, del, etc, from MJ::L
-            $path => $handler => $$def{operationId}
-        );
+        for my $m (@$method) {
+            my $m_def = { %$def };
+            $$m_def{operationId} .= "_$m";
+            $$config{paths}{$path}{$m} = $m_def;
+            $m = 'del' if ($m eq 'delete'); # for registration via del()
+
+            &{\&{$m}}( # get, post, put, patch, del, etc, from MJ::L
+                $path => $handler => $$m_def{operationId}
+            );
+        }
     }
 }
 
